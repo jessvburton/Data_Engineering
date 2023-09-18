@@ -2,67 +2,73 @@ import pandas as pd
 import gspread
 import datetime
 from google.cloud import storage
-from googleapiclient._auth import default_credentials
 
 
-def get_sheet_data(googlesheet_id, worksheet_name):
-    # Authenticates the connection to the API using service account credentials.
-    # Google Sheets API v4 - https://developers.google.com/identity/protocols/oauth2/scopes#sheets
-    scope = ['https://www.googleapis.com/auth/spreadsheets',
-             'https://www.googleapis.com/auth/drive']
-    credentials = default_credentials(scopes=scope)
-    client = gspread.authorize(credentials)  # https://docs.gspread.org/en/latest/oauth2.html
+class GSheetProcessor:
+    def __init__(self, googlesheet_id, worksheet_info):
+        self.googlesheet_id = googlesheet_id
+        self.worksheet_info = worksheet_info
+        self.client = gspread.service_account()
 
-    # Goes through each spreadsheet/worksheet to save them as a data frame
-    try:
-        # Open spreadsheet using ID
-        spreadsheet = client.open_by_key(googlesheet_id)
+    def get_sheet_data(self, worksheet_name):
+        """
+        This function opens each Google Sheet using the ID, then renames the worksheets and columns to a dataframe.
+        """
+        try:
+            spreadsheet = self.client.open_by_key(self.googlesheet_id)
+            worksheet = spreadsheet.worksheet(worksheet_name)
+            data = worksheet.get_all_values()
+            df = pd.DataFrame(data[1:], columns=data[0])
+            return df
 
-        # Select worksheet by its name
-        worksheet = spreadsheet.worksheet(worksheet_name)
+        except Exception as e:
+            raise Exception(f"Error retrieving data from worksheet {worksheet_name}: {e}")
 
-        # Get all values
-        data = worksheet.get_all_values()
+    def rename_and_process(self, data, worksheet_name):
+        """
+        This function renames each worksheet and column specified, then returns the modified dataframe.
+        """
+        try:
+            if worksheet_name in self.worksheet_info['worksheet_rename_mapping']:
+                new_worksheet_name = self.worksheet_info['worksheet_rename_mapping'][worksheet_name]
+                data.rename(columns={worksheet_name: new_worksheet_name}, inplace=True)
 
-        # Convert to df
-        df = pd.DataFrame(data[1:], columns=data[0])
+            for index, new_column_name in self.worksheet_info['column_rename_mapping'].items():
+                if index < len(data.columns):
+                    data.rename(columns={data.columns[index]: new_column_name}, inplace=True)
 
-        return df
+            print(f"Renaming completed for {new_worksheet_name}")
+            return data
 
-    except Exception as e:
-        print(f"An error occurred: {e}")
-        return None
+        except Exception as e:
+            raise Exception(f"Error renaming and processing data for worksheet {worksheet_name}: {e}")
 
+    def save_to_gcp_bucket(self, processed_data, worksheet_name):
+        """
+        This function authenticates your connection to GCP, renames the filename then saves to the specified bucket.
+        """
+        try:
+            storage_client = storage.Client()
+            bucket = storage_client.get_bucket(self.worksheet_info['bucket_name'])
 
-def rename_and_process(data, worksheet_name, worksheet_rename_mapping, column_rename_mapping):
-    # Rename worksheet
-    if worksheet_name in worksheet_rename_mapping:
-        new_worksheet_name = worksheet_rename_mapping[worksheet_name]
-        data.rename(columns={worksheet_name: new_worksheet_name}, inplace=True)
+            date_str = datetime.date.today().strftime("%Y-%m-%d")
+            file_time = datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
 
-    # Rename columns
-    for index, new_column_name in column_rename_mapping.items():
-        if index < len(data.columns):
-            data.rename(columns={data.columns[index]: new_column_name}, inplace=True)
-          
-    # Return the modified df
-    print(f"Renaming completed for {new_worksheet_name}")
-    return data
+            file_name = f"{worksheet_name}_{file_time}.csv"
+            csv_content = processed_data.to_csv(index=False)
+            file_path = f"{self.worksheet_info['folder_root']}{date_str}/{file_name}"
 
+            blob = bucket.blob(file_path)
+            blob.upload_from_string(csv_content)
+            print(f"{file_name} now uploaded")
+            return file_path
 
-def save_to_gcp_bucket(processed_data, worksheet_name, bucket_name, folder_root):
-    # Save df as csv in specified bucket
-    storage_client = storage.Client()
-    bucket = storage_client.get_bucket(bucket_name)
+        except Exception as e:
+            raise Exception(f"Error saving data to GCP bucket for worksheet {worksheet_name}: {e}")
 
-    date_str = datetime.date.today().strftime("%Y-%m-%d")
-    file_time = datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
-
-    file_name = f"{worksheet_name}_{file_time}.csv"
-    csv_content = processed_data.to_csv(index=False)
-    file_path = folder_root + date_str + "/" + file_name
-
-    blob = bucket.blob(file_path)
-    blob.upload_from_string(csv_content)
-
-    print(f"{file_name} now uploaded to {folder_root}")
+    def process_and_upload(self):
+        for worksheet_name in self.worksheet_info['worksheets']:
+            data = self.get_sheet_data(worksheet_name)
+            processed_data = self.rename_and_process(data, worksheet_name)
+            file_path = self.save_to_gcp_bucket(processed_data, worksheet_name)
+            print(f"{worksheet_name} data saved to {file_path}")
