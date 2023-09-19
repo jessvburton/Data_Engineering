@@ -67,16 +67,13 @@ class GSheetProcessor:
             raise Exception(f"Error changing date format for columns: {e}")
 
     def fill_empty_dates_with_default(self, data, column_indices):
-        # Replaces empty strings with NaN
         for idx in column_indices:
             col_name = data.columns[idx]
             if pd.api.types.is_datetime64_any_dtype(data[col_name]):
-                data[col_name].replace(r'^s*$', pd.NaT, regex=True, inplace=True)
-
-        for idx in column_indices:
-            col_name = data.columns[idx]
-            if pd.api.types.is_datetime64_any_dtype(data[col_name]):
-                data[col_name].fillna(pd.to_datetime('1900-01-01'))
+                data.loc[:, col_name].fillna(pd.to_datetime('1900-01-01'), inplace=True)
+            else:
+                data[col_name] = pd.to_datetime(data[col_name], errors='coerce')
+                data.loc[:, col_name].fillna(pd.to_datetime('1900-01-01'), inplace=True)
 
         return data
 
@@ -84,7 +81,10 @@ class GSheetProcessor:
         for idx in column_indices:
             col_name = data.columns[idx]
             if pd.api.types.is_datetime64_any_dtype(data[col_name]):
-                data = data.dropna(subset=col_name)
+                data = data.loc[~data[col_name].isnull()]
+            else:
+                data[col_name] = pd.to_datetime(data[col_name], errors='coerce')
+                data = data.loc[~data[col_name].isnull()]
 
         return data
 
@@ -97,6 +97,7 @@ class GSheetProcessor:
     def process_and_upload(self):
         for worksheet_name in self.worksheet_info['worksheets']:
             data = self.get_sheet_data(worksheet_name)
+
             processed_data = self.rename_and_process(data, worksheet_name)
 
             print(f"original data for {worksheet_name}:\n{processed_data.head()}")
@@ -107,12 +108,12 @@ class GSheetProcessor:
                 date_formats = list(date_format_columns.values())
                 print(f"columns to change format for {worksheet_name}: {column_indices}")
                 print(f"date formats for {worksheet_name}: {date_formats}")
+                # filter out empty dates
+                processed_data = self.filter_out_empty_dates(processed_data, column_indices)
                 # apply date format change
                 processed_data = self.convert_date_format(processed_data, column_indices, date_formats)
                 # fill empty date fields
                 processed_data = self.fill_empty_dates_with_default(processed_data, column_indices)
-                # filter out empty dates
-                processed_data = self.filter_out_empty_dates(processed_data, column_indices)
 
             print(f"processed data for {worksheet_name}:\n{processed_data.head()}")
 
