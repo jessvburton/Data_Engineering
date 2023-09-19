@@ -4,6 +4,7 @@ import datetime
 from google.cloud import storage
 from oauth2client.service_account import ServiceAccountCredentials
 import os
+from configs.sheets import ROC
 
 
 class GSheetProcessor:
@@ -11,7 +12,7 @@ class GSheetProcessor:
         self.googlesheet_id = googlesheet_id
         self.worksheet_info = worksheet_info
 
-    def get_sheet_data(self, worksheet_name):
+    def get_sheet_data(self, worksheet_name, columns_to_extract=None):
         """
         This function authenticates the connection to the API using a credentials file.
         Opens each Google Sheet using the ID, then renames the worksheets and columns to a dataframe.
@@ -25,8 +26,15 @@ class GSheetProcessor:
         try:
             spreadsheet = client.open_by_key(self.googlesheet_id)
             worksheet = spreadsheet.worksheet(worksheet_name)
-            data = worksheet.get_all_values()
-            df = pd.DataFrame(data[1:], columns=data[0])
+
+            if columns_to_extract is None:
+                data = worksheet.get_all_values()
+                df = pd.DataFrame(data[1:], columns=data[0])
+            else:
+                col_letters = [chr(ord("A") + col_index) for col_index in columns_to_extract]
+                col_range = ":".join(col_letters)
+                data = worksheet.get(f"A1:{col_range}{worksheet.row_count}")
+                df = pd.DataFrame(data, columns=col_letters)
             return df
 
         except Exception as e:
@@ -95,12 +103,11 @@ class GSheetProcessor:
         processed_data.to_csv(csv_file_path, index=False)
 
     def process_and_upload(self):
-        for worksheet_name in self.worksheet_info['worksheets']:
-            data = self.get_sheet_data(worksheet_name)
-
+        for sheet_info in SHEET_LIST:
+            worksheet_name = sheet_info['worksheets']
+            columns_to_extract = sheet_info.get('columns_to_extract', None)
+            data = self.get_sheet_data(worksheet_name, columns_to_extract)
             processed_data = self.rename_and_process(data, worksheet_name)
-
-            print(f"original data for {worksheet_name}:\n{processed_data.head()}")
 
             date_format_columns = self.worksheet_info.get('date_format_columns', {}).get(worksheet_name, {})
             if date_format_columns:
