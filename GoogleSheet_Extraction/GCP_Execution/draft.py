@@ -126,3 +126,38 @@ class GSheetProcessor:
 
             self.save_to_folder(processed_data, worksheet_name)
             print(f"{worksheet_name} data saved")
+
+
+
+
+
+
+
+
+
+
+functions.py:97: UserWarning: Could not infer format, so each element will be parsed individually, falling back to `dateutil`. To ensure parsing is consistent and as-expected, please specify a format.
+  data[col_name] = pd.to_datetime(data[col_name], errors='coerce')
+functions.py:73: SettingWithCopyWarning: 
+A value is trying to be set on a copy of a slice from a DataFrame.
+Try using .loc[row_indexer,col_indexer] = value instead
+
+See the caveats in the documentation: https://pandas.pydata.org/pandas-docs/stable/user_guide/indexing.html#returning-a-view-versus-a-copy
+  data[column_name] = pd.to_datetime(data[column_name], errors='coerce', dayfirst=True)
+functions.py:74: SettingWithCopyWarning: 
+A value is trying to be set on a copy of a slice from a DataFrame.
+Try using .loc[row_indexer,col_indexer] = value instead
+
+See the caveats in the documentation: https://pandas.pydata.org/pandas-docs/stable/user_guide/indexing.html#returning-a-view-versus-a-copy
+  data[column_name] = data[column_name].dt.strftime(new_date_format)
+functions.py:86: SettingWithCopyWarning: 
+A value is trying to be set on a copy of a slice from a DataFrame.
+Try using .loc[row_indexer,col_indexer] = value instead
+
+See the caveats in the documentation: https://pandas.pydata.org/pandas-docs/stable/user_guide/indexing.html#returning-a-view-versus-a-copy
+  data[col_name] = pd.to_datetime(data[col_name], errors='coerce')
+functions.py:87: SettingWithCopyWarning: 
+A value is trying to be set on a copy of a slice from a DataFrame
+
+See the caveats in the documentation: https://pandas.pydata.org/pandas-docs/stable/user_guide/indexing.html#returning-a-view-versus-a-copy
+  data.loc[:, col_name].fillna(pd.to_datetime('1900-01-01'), inplace=True)
