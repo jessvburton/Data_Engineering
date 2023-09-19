@@ -18,7 +18,7 @@ class GSheetProcessor:
         """
         scope = ['https://www.googleapis.com/auth/spreadsheets',
                  'https://www.googleapis.com/auth/drive']
-        credentials = ServiceAccountCredentials.from_json_keyfile_name('prodSA.json', scope)
+        credentials = ServiceAccountCredentials.from_json_keyfile_name('', scope)
         client = gspread.authorize(credentials)
 
         # Goes through each spreadsheet/worksheet to save them as a data frame
