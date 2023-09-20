@@ -103,11 +103,11 @@ class GSheetProcessor:
         processed_data.to_csv(csv_file_path, index=False)
 
     def process_and_upload(self):
-        for sheet_info in SHEET_LIST:
-            worksheet_name = sheet_info['worksheets']
-            columns_to_extract = sheet_info.get('columns_to_extract', None)
+        for worksheet_name in self.worksheet_info['worksheets']:
+            columns_to_extract = self.worksheet_info['columns_to_extract']
             data = self.get_sheet_data(worksheet_name, columns_to_extract)
             processed_data = self.rename_and_process(data, worksheet_name)
+            print(f"original data for {worksheet_name}:\n{processed_data.head()}")
 
             date_format_columns = self.worksheet_info.get('date_format_columns', {}).get(worksheet_name, {})
             if date_format_columns:
@@ -115,17 +115,18 @@ class GSheetProcessor:
                 date_formats = list(date_format_columns.values())
                 print(f"columns to change format for {worksheet_name}: {column_indices}")
                 print(f"date formats for {worksheet_name}: {date_formats}")
-                # filter out empty dates
-                processed_data = self.filter_out_empty_dates(processed_data, column_indices)
+
                 # apply date format change
                 processed_data = self.convert_date_format(processed_data, column_indices, date_formats)
-                # fill empty date fields
-                processed_data = self.fill_empty_dates_with_default(processed_data, column_indices)
+
+                empty_date_action = self.worksheet_info.get('empty_date_action', {})
+                for column_index, action in empty_date_action.items():
+                    if action == 'fill_with_default':
+                        processed_data = self.fill_empty_dates_with_default(processed_data, column_indices)
+                    elif action == 'filter_out_empty_dates':
+                        processed_data = self.filter_out_empty_dates(processed_data, column_indices)
 
             print(f"processed data for {worksheet_name}:\n{processed_data.head()}")
-
-            self.save_to_folder(processed_data, worksheet_name)
-            print(f"{worksheet_name} data saved")
 
 
 
