@@ -6,6 +6,7 @@ SHEET_LIST = [  # You can add more Google Sheets here, just keep the same format
             'Original worksheet name 1': 'New worksheet name 1', 
             'Original worksheet name 4': 'New worksheet name 4'
         },
+        'columns_to_extract': [0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
         'column_rename_mapping': { # This renaming will not rename the original worksheet columns, but the copy you are creating
             0: 'Column 1', # This renamining works on column index position
             1: 'Column 2',
@@ -17,6 +18,20 @@ SHEET_LIST = [  # You can add more Google Sheets here, just keep the same format
             7: 'Column 8',
             8: 'Column 9',
             9: 'Column 10'
+        },
+        'empty_date_action': { # can be 'fill_with_default' or 'filter_out_empty_dates'
+            3: 'fill_with_default',
+            9: 'filter_out_empty_dates'
+        },
+        'date_format_columns': { # set the date format you want for columns
+            'Original worksheet name 1': {
+                3: '%Y-%m-%d',
+                9: '%Y-%m-%d'
+            },
+            'Original worksheet name 4': {
+                3: '%Y-%m-%d',
+                9: '%Y-%m-%d'
+            }
         },
         'bucket_name': 'data-analytics', # Example naming
         'folder_root': 'google-sheets-as-csvs/' # Example naming
@@ -32,6 +47,7 @@ SHEET_LIST = [  # You can add more Google Sheets here, just keep the same format
             "": "",
             "": ""
         },
+        'columns_to_extract': [0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
         'column_rename_mapping': {
             0: '',
             1: '',
@@ -44,6 +60,19 @@ SHEET_LIST = [  # You can add more Google Sheets here, just keep the same format
             8: '',
             9: ''
         },
+        'empty_date_action': {
+            : '',
+            : ''
+        },
+        'date_format_columns': {
+            'Original worksheet name 1': {
+                : '',
+                : ''
+            },
+            'Original worksheet name 4': {
+                : '',
+                : ''
+            }
         'bucket_name': '',
         'folder_root': ''
     }
