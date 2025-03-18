@@ -1,8 +1,6 @@
 import pandas as pd
 import datacompy
 import warnings
-import sys
-
 
 print("Enter the file names to compare.")
 file1 = input("Enter name for file1: ")

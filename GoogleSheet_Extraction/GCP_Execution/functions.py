@@ -90,7 +90,7 @@ class GSheetProcessor:
 
     def save_to_gcp_bucket(self, processed_data, worksheet_name):
         """
-        This function authenticates your connection to GCP, renames the filename then saves to the specified bucket.
+        This function authenticates your connection to Google Cloud, renames the filename then saves to the specified bucket.
         """
         try:
             storage_client = storage.Client()
@@ -109,7 +109,7 @@ class GSheetProcessor:
             return file_path
 
         except Exception as e:
-            raise Exception(f"Error saving data to GCP bucket for worksheet {worksheet_name}: {e}")
+            raise Exception(f"Error saving data to Google Cloud bucket for worksheet {worksheet_name}: {e}")
 
     def process_and_upload(self):
         for worksheet_name in self.worksheet_info['worksheets']:
